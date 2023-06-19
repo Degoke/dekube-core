@@ -1,0 +1,18 @@
+create app -- namespace name domain secrets addons resorce-limits/group
+-- deployment
+-- service
+-- ingress
+
+namespace -- apps, addons, 
+
+crud deployment
+u ingress
+u secrets
+u resorce-limits/group
+
+
+
+
+auth
+
+addons -- added to namespace
