@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -163,6 +164,11 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	return nil
 }
 
+func(c *Controller) List() []*dekubev1.App {
+	app, _ := c.appsLister.List(labels.Everything())
+	return app
+}
+
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
@@ -233,8 +239,10 @@ func (c *Controller) processNextWorkItem(ctx context.Context) bool {
 func (c *Controller) syncHandler(ctx context.Context, key string) error {
 	// Convert the namespace/name string into a distinct namespace and name
 	logger := klog.LoggerWithValues(klog.FromContext(ctx), "resourceName", key)
+	logger.Info("Starting sync")
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	logger.Info("name", name)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
@@ -242,6 +250,8 @@ func (c *Controller) syncHandler(ctx context.Context, key string) error {
 
 	// Get the App resource with this namespace/name
 	app, err := c.appsLister.Apps(namespace).Get(name)
+	logger.Info("app", app)
+	logger.Info("APPNAME", app.Spec.Name)
 	if err != nil {
 		// The App resource may no longer exist, in which case we stop
 		// processing.
@@ -253,7 +263,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) error {
 		return err
 	}
 
-	deploymentName := app.Spec.DeploymentName
+	deploymentName := app.Spec.Name
 	if deploymentName == "" {
 		// We choose to absorb the error here as the worker would requeue the
 		// resource otherwise. Instead, the next time the resource is updated
@@ -303,6 +313,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) error {
 	// current state of the world
 	err = c.updateAppStatus(app, deployment)
 	if err != nil {
+		logger.Info("ERROR HERE 4", err)
 		return err
 	}
 
@@ -320,7 +331,8 @@ func (c *Controller) updateAppStatus(app *dekubev1.App, deployment *appsv1.Deplo
 	// we must use Update instead of UpdateStatus to update the Status block of the App resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
-	_, err := c.dekubeclientset.DekubeV1().Apps(app.Namespace).UpdateStatus(context.TODO(), appCopy, metav1.UpdateOptions{})
+	stuff, err := c.dekubeclientset.DekubeV1().Apps(app.Namespace).UpdateStatus(context.TODO(), appCopy, metav1.UpdateOptions{})
+	fmt.Printf("%v", stuff)
 	return err
 }
 
@@ -375,43 +387,5 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		c.enqueueApp(app)
 		return
-	}
-}
-
-// newDeployment creates a new Deployment for a App resource. It also sets
-// the appropriate OwnerReferences on the resource so handleObject can discover
-// the App resource that 'owns' it.
-func newDeployment(app *dekubev1.App) *appsv1.Deployment {
-	labels := map[string]string{
-		"app":        app.Spec.DeploymentName,
-		"controller": app.Name,
-	}
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Spec.DeploymentName,
-			Namespace: app.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(app, dekubev1.SchemeGroupVersion.WithKind("App")),
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: app.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx:latest",
-						},
-					},
-				},
-			},
-		},
 	}
 }

@@ -1,0 +1,7 @@
+apiVersion: dekube.com/v1
+kind: App
+metadata:
+  name: example-app
+spec:
+  deploymentName: example-app
+  replicas: 1

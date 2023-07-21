@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "dekube.fullname" . }}
+  labels:
+    {{- include "dekube.labels" . | nindent 4 }}
+rules:
+- apiGroups: ["dekube.com"] # "" indicates the core API group
+  resources: ["apps", "apps/status", apps.dekube.com]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"] # "" indicates the core API group
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "dekube.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "dekube.serviceAccountName" . }}
+  namespace: {{ include "dekube.namespace" . }}

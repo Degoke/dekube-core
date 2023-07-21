@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dekube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dekube
+  template:
+    metadata:
+      labels:
+        app: dekube
+    spec:
+      containers:
+      - name: dekube
+        image: "degoke/dekube-core"
+      serviceAccountName: default

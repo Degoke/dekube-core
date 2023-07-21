@@ -1,0 +1,76 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apps.dekube.com
+spec:
+  group: dekube.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        # schema used for validation
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - image
+                - name
+                - domain
+                - port
+              properties:
+                name:
+                  type: string
+                image:
+                  type: string
+                labels:
+                  type: object
+                  additionalProperties:
+                    type: string
+                annotations:
+                  type: object
+                  additionalProperties:
+                    type: string
+                environment:
+                  type: object
+                  additionalProperties:
+                    type: string
+                secrets:
+                    type: array
+                    items:
+                     type: string
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                limits:
+                  description: FunctionResources is used to set CPU and memory limits and requests
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                requests:
+                  description: FunctionResources is used to set CPU and memory limits and requests
+                  type: object
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                domain:
+                  type: string
+                port:
+                  type: string
+            status:
+              type: object
+              properties:
+                availableReplicas:
+                  type: integer
+  names:
+    kind: App
+    plural: apps
+  scope: Namespaced

@@ -31,6 +31,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 	// Group=dekube.com, Version=v1
 	case v1.SchemeGroupVersion.WithKind("App"):
 		return &dekubev1.AppApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("AppResources"):
+		return &dekubev1.AppResourcesApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AppSpec"):
 		return &dekubev1.AppSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AppStatus"):
